@@ -30,6 +30,16 @@ UPLOAD_FOLDER = "uploads"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+
+@app.get("/")
+def home():
+
+    return {
+        "message": "AI Car Damage Detection API Running"
+    }
+
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
 
