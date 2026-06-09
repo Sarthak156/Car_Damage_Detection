@@ -61,7 +61,7 @@ function App() {
     try {
 
       const response = await fetch(
-        "http://127.0.0.1:8000/predict",
+        "https://car-damage-detection-2j0f.onrender.com",
         {
           method: "POST",
           body: formData
