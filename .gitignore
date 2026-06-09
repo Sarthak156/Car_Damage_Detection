@@ -1,0 +1,56 @@
+```gitignore
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Virtual Environment
+venv/
+env/
+
+# Uploads
+uploads/
+
+# Model Weights
+*.pt
+
+# FastAPI
+*.log
+
+# Node Modules
+node_modules/
+
+# React Build
+dist/
+
+# Environment Files
+.env
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PDF Reports
+*.pdf
+
+# Cache
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# YOLO Runs
+runs/
+
+# Temporary Files
+temp/
+tmp/
+```
