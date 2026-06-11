@@ -233,11 +233,11 @@ function App() {
     
     // Injecting Metadata
     pdf.setProperties({
-      title: "AutoVision Damage Report",
-      subject: "Vehicle Integrity Inspection Results",
-      author: "AutoVision AI",
-      keywords: "vehicle, damage, inspection, AI, report",
-      creator: "AutoVision System"
+      title: "DamageVision Damage Report",
+      subject: "Car Damage Detection Results",
+      author: "DamageVision AI",
+      keywords: "car, damage, inspection, AI, report",
+      creator: "DamageVision System"
     });
     
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -258,7 +258,7 @@ function App() {
     const yOffset = (pdfHeight - finalHeight) / 2;
     
     pdf.addImage(imgData, "JPEG", xOffset, yOffset, finalWidth, finalHeight);
-    pdf.save("AutoVision_Damage_Report.pdf");
+    pdf.save("DamageVision_Damage_Report.pdf");
   };
 
   const getSeverityColor = (severity) => {
@@ -278,7 +278,7 @@ function App() {
             <Activity color="#ffffff" size={24} />
           </div>
           <span style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px', textTransform: 'uppercase' }} className="display-font">
-            AutoVision AI
+            DamageVision AI
           </span>
         </div>
         <div style={{ display: 'flex', gap: '24px', fontSize: '15px', color: '#475569', fontWeight: '600', fontFamily: "'Space Grotesk', sans-serif", textTransform: 'uppercase' }}>
@@ -312,7 +312,7 @@ function App() {
                     DIAGNOSTIC SYSTEM V2.4
                   </span>
                   <h1 style={{ fontSize: '56px', fontWeight: '800', color: '#0f172a', marginBottom: '20px', letterSpacing: '-2px', textTransform: 'uppercase', lineHeight: '1.1' }} className="display-font">
-                    Vehicle Integrity Inspection
+                Car Damage Detection
                   </h1>
                   <p style={{ fontSize: '18px', color: '#475569', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6', fontWeight: '500' }}>
                     Upload imagery to initiate technical analysis. AI identifies impact points and computes projected maintenance metrics.
@@ -511,7 +511,7 @@ function App() {
                     <img 
                       ref={imageRef} 
                       src={preview} 
-                      alt="Analyzed Vehicle" 
+                    alt="Analyzed Car" 
                       onLoad={handleImageLoad}
                       style={{ maxWidth: '100%', height: 'auto', display: 'block' }} 
                     />
@@ -602,7 +602,7 @@ function App() {
                       <p style={{ fontSize: '14px', color: '#334155', lineHeight: '1.6', margin: 0, fontWeight: '500' }}>
                         {result.total_damages > 0 
                           ? `System detects ${highestSeverity.toUpperCase()} structural degradation. Total of ${result.detections.length} damage signatures mathematically verified.` 
-                          : "No structural anomalies detected. Vehicle appears in optimal condition."}
+                          : "No structural anomalies detected. Car appears in optimal condition."}
                       </p>
                     </div>
                   </div>
