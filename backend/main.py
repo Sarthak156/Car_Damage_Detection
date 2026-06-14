@@ -52,7 +52,7 @@ async def predict(file: UploadFile = File(...)):
     # Run prediction
     results = model.predict(
         source=file_path,
-        conf=0.35,
+        conf=0.20,
         save=True
     )
 
