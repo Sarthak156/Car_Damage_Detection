@@ -3,13 +3,15 @@ import gradio as gr
 import traceback
 import numpy as np
 from PIL import Image
+from pathlib import Path
 
 # Load model — best.pt must be in the same directory as app.py
-model = YOLO("best.pt")
+BASE_DIR = Path(__file__).resolve().parent
+model = YOLO(str(BASE_DIR / "best.pt"))
 
 def detect_damage(image):
     """
-    image: numpy array (H, W, 3) — Gradio passes this when type="numpy"
+    image: file path or image payload depending on the Gradio client/runtime
     """
     if image is None:
         return {
@@ -19,7 +21,16 @@ def detect_damage(image):
         }
 
     try:
-        pil_image = Image.fromarray(image.astype(np.uint8))
+        if isinstance(image, str):
+            pil_image = Image.open(image).convert("RGB")
+        elif isinstance(image, dict):
+            image_path = image.get("path") or image.get("name")
+            if image_path:
+                pil_image = Image.open(image_path).convert("RGB")
+            else:
+                raise ValueError(f"Unsupported image payload: {type(image)}")
+        else:
+            pil_image = Image.fromarray(image.astype(np.uint8))
         results   = model.predict(pil_image, conf=0.20)
         detections = []
 
@@ -65,7 +76,7 @@ def detect_damage(image):
 
 interface = gr.Interface(
     fn=detect_damage,
-    inputs=gr.Image(type="numpy", label="Upload Car Image"),
+    inputs=gr.Image(type="filepath", label="Upload Car Image"),
     outputs=gr.JSON(label="Detection Results"),
     title="AI Car Damage Detection",
     description="Upload a car image to detect damage using YOLO",

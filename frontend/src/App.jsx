@@ -1,10 +1,9 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
-import { Client, handle_file } from "@gradio/client";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-const HF_SPACE = "sarthak156/damagevision";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 const SCAN_MESSAGES = [
   "SYSTEM_INIT_YOLO_V8...",
@@ -70,28 +69,20 @@ function App() {
     setLoading(true);
 
     try {
-      const client = await Client.connect(HF_SPACE);
-      const fileRef = handle_file(file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-      let prediction;
+      const response = await fetch(`${API_BASE_URL}/predict`, {
+        method: "POST",
+        body: formData
+      });
 
-      try {
-        prediction = await client.predict("/predict", {
-          image: fileRef
-        });
-      } catch (firstError) {
-        prediction = await client.predict("/predict", [fileRef]);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Request failed with status ${response.status}`);
       }
 
-      const finalPayload = Array.isArray(prediction)
-        ? prediction[0]
-        : prediction?.data && Array.isArray(prediction.data)
-          ? prediction.data[0]
-          : prediction?.data ?? prediction;
-
-      if (!finalPayload) {
-        throw new Error("No prediction received.");
-      }
+      const finalPayload = await response.json();
 
       // FILTER LOW CONFIDENCE
 

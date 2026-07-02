@@ -7,6 +7,7 @@ from ultralytics import YOLO
 import shutil
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 app = FastAPI()
 
@@ -22,9 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
-model = YOLO("best.pt")
+BASE_DIR = Path(__file__).resolve().parent
+model = YOLO(str(BASE_DIR / "best.pt"))
 
 UPLOAD_FOLDER = "uploads"
 
