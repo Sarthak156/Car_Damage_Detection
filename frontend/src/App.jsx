@@ -5,7 +5,7 @@ import { Client } from "@gradio/client";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const HF_SPACE = "sarthak156/DamageVision";
+const HF_SPACE = "sarthak156/damagevision";
 
 const SCAN_MESSAGES = [
   "SYSTEM_INIT_YOLO_V8...",
