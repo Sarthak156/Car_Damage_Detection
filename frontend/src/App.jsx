@@ -24,14 +24,14 @@ const TechGrid = () => (
 const brutalistShadow = "6px 6px 0px #000";
 
 function App() {
-  const [file, setFile]               = useState(null);
-  const [preview, setPreview]         = useState(null);
-  const [result, setResult]           = useState(null);
-  const [loading, setLoading]         = useState(false);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const imageRef                      = useRef(null);
-  const [dimensions, setDimensions]   = useState({ naturalWidth: 1, naturalHeight: 1 });
-  const [msgIdx, setMsgIdx]           = useState(0);
+  const imageRef = useRef(null);
+  const [dimensions, setDimensions] = useState({ naturalWidth: 1, naturalHeight: 1 });
+  const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
     let interval;
@@ -61,45 +61,95 @@ function App() {
     maxFiles: 1
   });
 
+
   const handleUpload = async () => {
+
     if (!file) return;
+
     setLoading(true);
+
     try {
-      const client = await Client.connect(HF_SPACE);
-      const cleanBlob = new Blob([await file.arrayBuffer()], { type: file.type });
-      const response = await client.predict("/predict", { image: cleanBlob });
+
+      const client = await Client.connect(
+        "https://sarthak156-damagevision.hf.space/"
+      );
+
+      // CLEAN FILE OBJECT
+
+      const cleanBlob = new Blob(
+        [await file.arrayBuffer()],
+        {
+          type: file.type
+        }
+      );
+
+      const response = await client.predict(
+        "/predict",
+        {
+          image: cleanBlob
+        }
+      );
+
+      console.log("HF RESPONSE:", response);
 
       if (!response?.data?.[0]) {
-        throw new Error("Invalid response format from Hugging Face API.");
+
+        throw new Error(
+          "Invalid response format from Hugging Face API."
+        );
       }
 
       const payload = response.data[0];
+
+      // API ERROR CHECK
+
       if (payload.error) {
+
         throw new Error(payload.error);
       }
 
+      // FILTER LOW CONFIDENCE
+
       if (payload.detections) {
-        payload.detections = payload.detections.filter(d => d.confidence > 0.25);
-        payload.total_damages = payload.detections.length;
+
+        payload.detections =
+          payload.detections.filter(
+            d => d.confidence > 0.25
+          );
+
+        payload.total_damages =
+          payload.detections.length;
       }
 
       setResult(payload);
+
     } catch (error) {
-      console.error("Gradio API Error:", error);
-      const msg = error.message || JSON.stringify(error);
-      alert(
-        `Prediction failed!\n\nDetails: ${msg}\n\nCheck the HuggingFace Space → Logs tab for the full Python error.`
+
+      console.error(
+        "Gradio API Error:",
+        error
       );
+
+      const msg =
+        error.message ||
+        JSON.stringify(error);
+
+      alert(
+        `Prediction failed!\n\nDetails: ${msg}`
+      );
+
     } finally {
+
       setLoading(false);
     }
   };
 
+
   const downloadPDF = async () => {
     setIsExporting(true);
     try {
-      const pdf      = new jsPDF("p", "mm", "a4");
-      const pdfWidth  = pdf.internal.pageSize.getWidth();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
       const capturePage = async (elementId) => {
@@ -141,7 +191,7 @@ function App() {
 
   const handleImageLoad = (e) => {
     setDimensions({
-      naturalWidth:  e.target.naturalWidth,
+      naturalWidth: e.target.naturalWidth,
       naturalHeight: e.target.naturalHeight
     });
   };
@@ -149,33 +199,33 @@ function App() {
   const getEstimatedCost = (damageType, severity) => {
     const type = damageType.toLowerCase();
     if (type === "scratch") {
-      if (severity === "Minor")    return 1000;
+      if (severity === "Minor") return 1000;
       if (severity === "Moderate") return 3500;
-      if (severity === "Severe")   return 10500;
+      if (severity === "Severe") return 10500;
     }
     if (type === "dent") {
-      if (severity === "Minor")    return 2000;
+      if (severity === "Minor") return 2000;
       if (severity === "Moderate") return 5500;
-      if (severity === "Severe")   return 14000;
+      if (severity === "Severe") return 14000;
     }
-    if (severity === "Severe")   return 8000;
+    if (severity === "Severe") return 8000;
     if (severity === "Moderate") return 4500;
-    if (severity === "Minor")    return 1500;
+    if (severity === "Minor") return 1500;
     return 1000;
   };
 
   const getSeverityStyles = (severity) => {
-    if (severity === "Severe")   return { color: "#fff", bg: "#ef4444", border: "#000" };
+    if (severity === "Severe") return { color: "#fff", bg: "#ef4444", border: "#000" };
     if (severity === "Moderate") return { color: "#000", bg: "#f97316", border: "#000" };
-    if (severity === "Minor")    return { color: "#000", bg: "#eab308", border: "#000" };
+    if (severity === "Minor") return { color: "#000", bg: "#eab308", border: "#000" };
     return { color: "#000", bg: "#e5e5e5", border: "#000" };
   };
 
-  let totalRepairCost  = 0;
-  let highestSeverity  = "None";
-  let avgConfidence    = 0;
+  let totalRepairCost = 0;
+  let highestSeverity = "None";
+  let avgConfidence = 0;
   let inspectionStatus = "Clear";
-  let insuranceRisk    = "Low";
+  let insuranceRisk = "Low";
 
   if (result?.detections?.length > 0) {
     result.detections.forEach((item) => {
@@ -184,17 +234,17 @@ function App() {
 
     const severities = result.detections.map((d) => d.severity);
     if (severities.includes("Severe")) {
-      highestSeverity  = "Severe";
+      highestSeverity = "Severe";
       inspectionStatus = "Action Required - Major";
-      insuranceRisk    = "High";
+      insuranceRisk = "High";
     } else if (severities.includes("Moderate")) {
-      highestSeverity  = "Moderate";
+      highestSeverity = "Moderate";
       inspectionStatus = "Action Required - Minor";
-      insuranceRisk    = "Medium";
+      insuranceRisk = "Medium";
     } else {
-      highestSeverity  = "Minor";
+      highestSeverity = "Minor";
       inspectionStatus = "Review Recommended";
-      insuranceRisk    = "Low";
+      insuranceRisk = "Low";
     }
 
     avgConfidence =
@@ -207,10 +257,10 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", color: "#000", fontFamily: '"Archivo", "Inter", system-ui, -apple-system, sans-serif' }}>
       <TechGrid />
-      
+
       <nav style={{ position: "relative", zIndex: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 40px", borderBottom: "3px solid #000", background: "#fff" }}>
         <div style={{ fontSize: "24px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "-1px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="square"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="square"><path d="M2 12h4l3-9 5 18 3-9h5" /></svg>
           DAMAGE_VISION<span style={{ color: "#3b82f6" }}>.SYS</span>
         </div>
         <div style={{ fontSize: "14px", fontFamily: "monospace", fontWeight: "bold", background: "#000", color: "#0f0", padding: "4px 12px", textTransform: "uppercase" }}>
@@ -219,7 +269,7 @@ function App() {
       </nav>
 
       <main style={{ position: "relative", zIndex: 10, maxWidth: "1100px", margin: "0 auto", padding: "60px 20px" }}>
-        
+
         {!result && !loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div style={{ textAlign: "center", marginBottom: "60px" }}>
@@ -227,7 +277,7 @@ function App() {
                 ENGINE: YOLOv8 // BUILD: 2.1
               </motion.div>
               <h1 style={{ fontSize: "72px", fontWeight: "900", marginBottom: "20px", color: "#000", textTransform: "uppercase", letterSpacing: "-2px", lineHeight: "0.95" }}>
-                Automated <br/> Damage <br/> Diagnostics.
+                Automated <br /> Damage <br /> Diagnostics.
               </h1>
               <p style={{ fontSize: "18px", color: "#444", maxWidth: "600px", margin: "0 auto", lineHeight: "1.5", fontWeight: "500" }}>
                 Upload structural vehicle imagery. Our computer vision protocol will isolate impact vectors, quantify severity, and compute repair estimates instantly.
@@ -360,7 +410,7 @@ function App() {
 
               <div style={{ marginBottom: "40px" }}>
                 <h2 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "20px", color: "#000", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ display: "inline-block", width: "16px", height: "16px", background: "#facc15", border: "2px solid #000" }}/> DETECTED ANOMALIES
+                  <span style={{ display: "inline-block", width: "16px", height: "16px", background: "#facc15", border: "2px solid #000" }} /> DETECTED ANOMALIES
                 </h2>
                 <div style={{ border: "3px solid #000", background: "#fff", boxShadow: "4px 4px 0px #000" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
@@ -449,7 +499,7 @@ function App() {
                   <h3 style={{ fontSize: "16px", fontWeight: "900", color: "#000", marginBottom: "16px", textAlign: "center", textTransform: "uppercase", letterSpacing: "1px" }}>RAW.IMG</h3>
                   <img src={preview} alt="Original" style={{ width: "100%", display: "block", border: "2px solid #000" }} />
                 </div>
-                
+
                 <div style={{ flex: "1 1 300px", maxWidth: "500px", background: "#f0f0f0", padding: "16px", border: "3px solid #000" }}>
                   <h3 style={{ fontSize: "16px", fontWeight: "900", color: "#3b82f6", marginBottom: "16px", textAlign: "center", textTransform: "uppercase", letterSpacing: "1px" }}>
                     COMPUTED.IMG
@@ -506,11 +556,11 @@ function App() {
                 disabled={isExporting}
                 style={{
                   padding: "16px 40px", background: "#facc15", color: "#000", border: "4px solid #000",
-                  fontSize: "18px", fontWeight: "900", textTransform: "uppercase", cursor: isExporting ? "not-allowed" : "pointer", 
+                  fontSize: "18px", fontWeight: "900", textTransform: "uppercase", cursor: isExporting ? "not-allowed" : "pointer",
                   boxShadow: brutalistShadow, opacity: isExporting ? 0.7 : 1, display: "inline-flex", alignItems: "center", gap: "10px"
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                 {isExporting ? "ENCODING DOCUMENT..." : "EXPORT TECHNICAL PDF"}
               </motion.button>
             </div>
