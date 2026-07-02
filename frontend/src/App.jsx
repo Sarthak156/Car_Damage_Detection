@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
-import { Client } from "@gradio/client";
+import { Client, handle_file } from "@gradio/client";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 const HF_SPACE = "sarthak156/damagevision";
@@ -70,112 +70,27 @@ function App() {
     setLoading(true);
 
     try {
+      const client = await Client.connect(HF_SPACE);
+      const fileRef = handle_file(file);
 
-      // CONVERT FILE TO BASE64
+      let prediction;
 
-      const toBase64 = (file) =>
-        new Promise((resolve, reject) => {
-
-          const reader = new FileReader();
-
-          reader.readAsDataURL(file);
-
-          reader.onload = () =>
-            resolve(reader.result);
-
-          reader.onerror = error =>
-            reject(error);
+      try {
+        prediction = await client.predict("/predict", {
+          image: fileRef
         });
-
-      const base64Image =
-        (await toBase64(file)).split(',')[1];
-
-      // STEP 1
-
-      const response = await fetch(
-        "https://sarthak156-damagevision.hf.space/run/predict",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            data: [
-              {
-                "name": file.name,
-                "data": `data:image/jpeg;base64,${base64Image}`,
-                "is_file": true
-              }
-            ]
-
-
-          })
-        }
-      );
-
-      const event =
-        await response.json();
-
-      console.log(
-        "EVENT:",
-        event
-      );
-
-      // STEP 2
-
-      const resultResponse =
-        await fetch(
-          `https://sarthak156-damagevision.hf.space/queue/join?fn_index=0&session_hash=${event.session_hash}`
-        );
-
-      const text =
-        await resultResponse.text();
-
-      console.log(text);
-
-      const lines =
-        text.split("\n");
-
-      let finalPayload =
-        null;
-
-      for (const line of lines) {
-
-        if (
-          line.startsWith("data:")
-        ) {
-
-          try {
-
-            const parsed =
-              JSON.parse(
-                line.replace(
-                  "data:",
-                  ""
-                ).trim()
-              );
-
-            if (
-              parsed.msg === "process_completed"
-            ) {
-
-              finalPayload =
-                parsed.output.data[0];
-            }
-
-          } catch { }
-        }
+      } catch (firstError) {
+        prediction = await client.predict("/predict", [fileRef]);
       }
 
-      if (!finalPayload) {
+      const finalPayload = Array.isArray(prediction)
+        ? prediction[0]
+        : prediction?.data && Array.isArray(prediction.data)
+          ? prediction.data[0]
+          : prediction?.data ?? prediction;
 
-        throw new Error(
-          "No prediction received."
-        );
+      if (!finalPayload) {
+        throw new Error("No prediction received.");
       }
 
       // FILTER LOW CONFIDENCE
