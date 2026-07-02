@@ -62,6 +62,7 @@ function App() {
   });
 
 
+
   const handleUpload = async () => {
 
     if (!file) return;
@@ -70,72 +71,125 @@ function App() {
 
     try {
 
-      const client = await Client.connect(
-        "https://sarthak156-damagevision.hf.space/"
-      );
-
-      // CLEAN FILE OBJECT
-
-      const cleanBlob = new Blob(
-        [await file.arrayBuffer()],
+      // STEP 1
+      const response = await fetch(
+        "https://sarthak156-damagevision.hf.space/gradio_api/call/predict",
         {
-          type: file.type
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            data: [file]
+          })
         }
       );
 
-      const response = await client.predict(
-        "/predict",
-        {
-          image: cleanBlob
-        }
+      const event = await response.json();
+
+      console.log("EVENT:", event);
+
+      // STEP 2
+      const resultResponse = await fetch(
+        `https://sarthak156-damagevision.hf.space/gradio_api/call/predict/${event.event_id}`
       );
 
-      console.log("HF RESPONSE:", response);
+      const reader =
+        resultResponse.body.getReader();
 
-      if (!response?.data?.[0]) {
+      const decoder =
+        new TextDecoder();
 
-        throw new Error(
-          "Invalid response format from Hugging Face API."
-        );
+      let finalPayload = null;
+
+      while (true) {
+
+        const { done, value } =
+          await reader.read();
+
+        if (done) break;
+
+        const chunk =
+          decoder.decode(value);
+
+        const lines =
+          chunk.split("\n");
+
+        for (const line of lines) {
+
+          if (
+            line.startsWith("data:")
+          ) {
+
+            const jsonString =
+              line.replace(
+                "data:",
+                ""
+              ).trim();
+
+            try {
+
+              const parsed =
+                JSON.parse(
+                  jsonString
+                );
+
+              if (
+                parsed &&
+                parsed[0]
+              ) {
+
+                finalPayload =
+                  parsed[0];
+              }
+
+            } catch {
+              // ignore parsing noise
+            }
+          }
+        }
       }
 
-      const payload = response.data[0];
+      console.log(
+        "FINAL:",
+        finalPayload
+      );
 
-      // API ERROR CHECK
+      if (!finalPayload) {
 
-      if (payload.error) {
-
-        throw new Error(payload.error);
+        throw new Error(
+          "No prediction received."
+        );
       }
 
       // FILTER LOW CONFIDENCE
 
-      if (payload.detections) {
+      if (
+        finalPayload.detections
+      ) {
 
-        payload.detections =
-          payload.detections.filter(
+        finalPayload.detections =
+          finalPayload.detections.filter(
             d => d.confidence > 0.25
           );
 
-        payload.total_damages =
-          payload.detections.length;
+        finalPayload.total_damages =
+          finalPayload.detections.length;
       }
 
-      setResult(payload);
+      setResult(finalPayload);
 
     } catch (error) {
 
       console.error(
-        "Gradio API Error:",
+        "HF FETCH ERROR:",
         error
       );
 
-      const msg =
-        error.message ||
-        JSON.stringify(error);
-
       alert(
-        `Prediction failed!\n\nDetails: ${msg}`
+        `Prediction failed!\n\n${error.message}`
       );
 
     } finally {
@@ -143,6 +197,8 @@ function App() {
       setLoading(false);
     }
   };
+
+
 
 
   const downloadPDF = async () => {
