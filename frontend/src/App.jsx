@@ -89,7 +89,7 @@ function App() {
         });
 
       const base64Image =
-        await toBase64(file);
+        (await toBase64(file)).split(',')[1];
 
       // STEP 1
 
