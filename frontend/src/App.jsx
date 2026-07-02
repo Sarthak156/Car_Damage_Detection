@@ -2,8 +2,6 @@ import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { Client } from "@gradio/client";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 const HF_SPACE = "sarthak156/damagevision";
 
@@ -70,118 +68,31 @@ function App() {
 
     setLoading(true);
 
+    const formData = new FormData();
+    formData.append("file", file);
+
     try {
-
-      // CONVERT FILE TO BASE64
-
-      const toBase64 = (file) =>
-        new Promise((resolve, reject) => {
-
-          const reader = new FileReader();
-
-          reader.readAsDataURL(file);
-
-          reader.onload = () =>
-            resolve(reader.result);
-
-          reader.onerror = error =>
-            reject(error);
-        });
-
-      const base64Image =
-        (await toBase64(file)).split(',')[1];
-
-      // STEP 1
-
       const response = await fetch(
-        "https://sarthak156-damagevision.hf.space/gradio_api/call/predict",
+        "http://127.0.0.1:8000/predict",
         {
           method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            data: [
-              {
-                "name": file.name,
-                "data": base64Image,
-                "is_file": true
-              }
-            ]
-
-
-          })
+          body: formData,
         }
       );
 
-      const event =
-        await response.json();
-
-      console.log(
-        "EVENT:",
-        event
-      );
-
-      // STEP 2
-
-      const resultResponse =
-        await fetch(
-          `https://sarthak156-damagevision.hf.space/gradio_api/call/predict/${event.event_id}`
-        );
-
-      const text =
-        await resultResponse.text();
-
-      console.log(text);
-
-      const lines =
-        text.split("\n");
-
-      let finalPayload =
-        null;
-
-      for (const line of lines) {
-
-        if (
-          line.startsWith("data:")
-        ) {
-
-          try {
-
-            const parsed =
-              JSON.parse(
-                line.replace(
-                  "data:",
-                  ""
-                ).trim()
-              );
-
-            if (
-              parsed &&
-              parsed[0]
-            ) {
-
-              finalPayload =
-                parsed[0];
-            }
-
-          } catch { }
-        }
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
       }
 
-      if (!finalPayload) {
+      const finalPayload = await response.json();
 
+      if (!finalPayload) {
         throw new Error(
           "No prediction received."
         );
       }
 
       // FILTER LOW CONFIDENCE
-
       if (
         finalPayload.detections
       ) {
@@ -216,51 +127,6 @@ function App() {
 
 
 
-
-
-  const downloadPDF = async () => {
-    setIsExporting(true);
-    try {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const capturePage = async (elementId) => {
-        const element = document.getElementById(elementId);
-        if (!element) return null;
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-        return canvas.toDataURL("image/png");
-      };
-
-      const imgData1 = await capturePage("pdf-page-1");
-      if (imgData1) {
-        const props1 = pdf.getImageProperties(imgData1);
-        pdf.addImage(imgData1, "PNG", 0, 0, pdfWidth, (props1.height * pdfWidth) / props1.width);
-      }
-
-      const imgData2 = await capturePage("pdf-page-2");
-      if (imgData2) {
-        pdf.addPage();
-        const props2 = pdf.getImageProperties(imgData2);
-        pdf.addImage(imgData2, "PNG", 0, 0, pdfWidth, (props2.height * pdfWidth) / props2.width);
-      }
-
-      const pageCount = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(10);
-        pdf.setTextColor(150);
-        pdf.text(`Page ${i} of ${pageCount}`, pdfWidth / 2, pdfHeight - 10, { align: "center" });
-      }
-
-      pdf.save("DamageVision_Report.pdf");
-    } catch (error) {
-      console.error("PDF Export Error:", error);
-      alert("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleImageLoad = (e) => {
     setDimensions({
@@ -622,21 +488,6 @@ function App() {
               </div>
             </div>
 
-            <div data-html2canvas-ignore="true" style={{ textAlign: "center", paddingTop: "20px", marginTop: "20px" }}>
-              <motion.button
-                whileTap={{ x: 4, y: 4, boxShadow: "0px 0px 0px #000" }}
-                onClick={downloadPDF}
-                disabled={isExporting}
-                style={{
-                  padding: "16px 40px", background: "#facc15", color: "#000", border: "4px solid #000",
-                  fontSize: "18px", fontWeight: "900", textTransform: "uppercase", cursor: isExporting ? "not-allowed" : "pointer",
-                  boxShadow: brutalistShadow, opacity: isExporting ? 0.7 : 1, display: "inline-flex", alignItems: "center", gap: "10px"
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                {isExporting ? "ENCODING DOCUMENT..." : "EXPORT TECHNICAL PDF"}
-              </motion.button>
-            </div>
           </motion.div>
         )}
 
