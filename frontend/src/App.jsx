@@ -104,11 +104,12 @@ function App() {
           },
 
           body: JSON.stringify({
+
             data: [
-              {
-                image: base64Image
-              }
+              base64Image
             ]
+
+
           })
         }
       );
