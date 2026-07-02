@@ -106,7 +106,11 @@ function App() {
           body: JSON.stringify({
 
             data: [
-              base64Image
+              {
+                "name": file.name,
+                "data": base64Image,
+                "is_file": true
+              }
             ]
 
 
