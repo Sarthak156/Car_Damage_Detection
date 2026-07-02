@@ -63,6 +63,7 @@ function App() {
 
 
 
+
   const handleUpload = async () => {
 
     if (!file) return;
@@ -71,91 +72,101 @@ function App() {
 
     try {
 
+      // CONVERT FILE TO BASE64
+
+      const toBase64 = (file) =>
+        new Promise((resolve, reject) => {
+
+          const reader = new FileReader();
+
+          reader.readAsDataURL(file);
+
+          reader.onload = () =>
+            resolve(reader.result);
+
+          reader.onerror = error =>
+            reject(error);
+        });
+
+      const base64Image =
+        await toBase64(file);
+
       // STEP 1
+
       const response = await fetch(
         "https://sarthak156-damagevision.hf.space/gradio_api/call/predict",
         {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type":
+              "application/json"
           },
 
           body: JSON.stringify({
-            data: [file]
+            data: [
+              {
+                image: base64Image
+              }
+            ]
           })
         }
       );
 
-      const event = await response.json();
-
-      console.log("EVENT:", event);
-
-      // STEP 2
-      const resultResponse = await fetch(
-        `https://sarthak156-damagevision.hf.space/gradio_api/call/predict/${event.event_id}`
-      );
-
-      const reader =
-        resultResponse.body.getReader();
-
-      const decoder =
-        new TextDecoder();
-
-      let finalPayload = null;
-
-      while (true) {
-
-        const { done, value } =
-          await reader.read();
-
-        if (done) break;
-
-        const chunk =
-          decoder.decode(value);
-
-        const lines =
-          chunk.split("\n");
-
-        for (const line of lines) {
-
-          if (
-            line.startsWith("data:")
-          ) {
-
-            const jsonString =
-              line.replace(
-                "data:",
-                ""
-              ).trim();
-
-            try {
-
-              const parsed =
-                JSON.parse(
-                  jsonString
-                );
-
-              if (
-                parsed &&
-                parsed[0]
-              ) {
-
-                finalPayload =
-                  parsed[0];
-              }
-
-            } catch {
-              // ignore parsing noise
-            }
-          }
-        }
-      }
+      const event =
+        await response.json();
 
       console.log(
-        "FINAL:",
-        finalPayload
+        "EVENT:",
+        event
       );
+
+      // STEP 2
+
+      const resultResponse =
+        await fetch(
+          `https://sarthak156-damagevision.hf.space/gradio_api/call/predict/${event.event_id}`
+        );
+
+      const text =
+        await resultResponse.text();
+
+      console.log(text);
+
+      const lines =
+        text.split("\n");
+
+      let finalPayload =
+        null;
+
+      for (const line of lines) {
+
+        if (
+          line.startsWith("data:")
+        ) {
+
+          try {
+
+            const parsed =
+              JSON.parse(
+                line.replace(
+                  "data:",
+                  ""
+                ).trim()
+              );
+
+            if (
+              parsed &&
+              parsed[0]
+            ) {
+
+              finalPayload =
+                parsed[0];
+            }
+
+          } catch { }
+        }
+      }
 
       if (!finalPayload) {
 
@@ -179,17 +190,16 @@ function App() {
           finalPayload.detections.length;
       }
 
-      setResult(finalPayload);
+      setResult(
+        finalPayload
+      );
 
     } catch (error) {
 
-      console.error(
-        "HF FETCH ERROR:",
-        error
-      );
+      console.error(error);
 
       alert(
-        `Prediction failed!\n\n${error.message}`
+        `Prediction failed:\n${error.message}`
       );
 
     } finally {
@@ -197,6 +207,8 @@ function App() {
       setLoading(false);
     }
   };
+
+
 
 
 
