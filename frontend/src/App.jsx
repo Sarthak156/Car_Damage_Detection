@@ -3,7 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 const SCAN_MESSAGES = [
   "SYSTEM_INIT_YOLO_V8...",
