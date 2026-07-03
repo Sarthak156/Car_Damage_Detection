@@ -1,7 +1,9 @@
+fastapi
+uvicorn
+python-multipart
 ultralytics==8.3.40
 opencv-python-headless
 pillow
 torch
 torchvision
 numpy
-matplotlib
